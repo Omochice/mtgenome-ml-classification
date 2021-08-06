@@ -1,0 +1,20 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+mizlab-tools = {ref = "main", git = "https://github.com/MizLab/mizlab-tools.git"}
+pandas = "*"
+biopython = "*"
+keras = "*"
+pyyaml = "*"
+matplotlib = "*"
+
+[dev-packages]
+yapf = "*"
+flake8 = "*"
+isort = "*"
+
+[requires]
+python_version = "3.8"
