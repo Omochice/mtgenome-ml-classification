@@ -35,6 +35,7 @@ def fetch_contigs(search_root: Path, email=str):
     contig_records = mizlab_tools.fetch_gbk.fetch([d["accession"] for d in contigs],
                                                   email=email)
 
+    contig_memo = open(search_root.parents[1] / "memo" / "contigs.txt", "w")
     for original, contig_record, contig_info in zip(records_has_contig, contig_records,
                                                     contigs):
         seq = contig_record.seq[contig_info["start"]:contig_info["end"]]
@@ -42,9 +43,10 @@ def fetch_contigs(search_root: Path, email=str):
             seq = seq.complement()
         original.seq = seq
         del original.annotations["contig"]
-        print(f"{original.name} has contig")
+        print(f"{original.name} has contig", file=contig_memo)
         with open(search_root / f"{original.name}.gbk", "w") as f:
             SeqIO.write(original, f, "genbank")
+    contig_memo.close()
 
 
 def fetch_taxon(gbkfiles: Iterable, email: str) -> Dict:
@@ -93,29 +95,44 @@ def make_csv(records: Iterable[SeqRecord.SeqRecord], taxon: dict, priority: Unio
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--config")
+    parser = argparse.ArgumentParser(
+        description="Fetch GBK file and its taxonomy information.")
+    parser.add_argument("--config", help="Path of config.yml")
     args = parser.parse_args()
 
     with open(args.config) as f:
         config = yaml.safe_load(f)
 
+    # fetch gbk
     csv = config["source_csv"]
     data_dst = Path(config["data_dst"])
-    fetch_gbk(csv, Path(config["data_dst"]), config["email"])
+    fetch_gbk(parse_csv(csv), Path(config["data_dst"]), config["email"])
     fetch_contigs(Path(config["data_dst"])/"gbk", config["email"])
-    with open(data_dst / "json" / "taxon.json", "w") as f:
+
+    gbk_dst = data_dst / "gbk"
+    json_dst = data_dst / "json"
+    csv_dst = data_dst / "csv"
+
+    for dst in (gbk_dst, json_dst, csv_dst):
+        dst.mkdir(exist_ok=True, parents=True)
+
+    # fetch taxon
+    with open(json_dst / "taxon.json", "w") as f:
         json.dump(
             fetch_taxon(glob(str(data_dst / "gbk" / "*.gbk")), email=config["email"]),
             f)
+
+    # make information table(csv format)
     records = []
-    for r in glob(str(data_dst/"gbk"/"*.gbk")):
+    for r in glob(str(gbk_dst / "*.gbk")):
         for record in SeqIO.parse(r, "genbank"):
             records.append(record)
-    with open(data_dst/"json"/"taxon.json") as f:
+    with open(json_dst / "taxon.json") as f:
         df = make_csv(records, json.load(f), config["priority"])
-        df.to_csv(data_dst/"csv"/"informations.csv", sep="\t")
+        # print(csv_dst/"informations.csv")
+        df.to_csv(csv_dst/"informations.csv", sep="\t")
 
-    with open(data_dst/"json"/"n_classes.json", "w") as f:
+    # it is useful to make show number of species in each class
+    with open(json_dst / "n_classes.json", "w") as f:
         frozen = OrderedDict(sorted(Counter(df["class"]).items(), key=lambda x: -x[1]))
         json.dump(frozen, f, indent=2)
