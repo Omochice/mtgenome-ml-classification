@@ -18,7 +18,7 @@ def fetch_gbk(accs: Iterable[str], dst_root: Path, email: str):
     dst.mkdir(parents=True, exist_ok=True)
 
     for gbk in mizlab_tools.fetch_gbk.fetch(accs, email=email):
-        with open(dst / f"{gbk.name}.gbk") as f:
+        with open(dst / f"{gbk.name}.gbk", "w") as f:
             SeqIO.write(gbk, f, "genbank")
 
 
