@@ -10,6 +10,8 @@ biopython = "*"
 keras = "*"
 pyyaml = "*"
 matplotlib = "*"
+tensorflow = "*"
+numpy = "*"
 
 [dev-packages]
 yapf = "*"
