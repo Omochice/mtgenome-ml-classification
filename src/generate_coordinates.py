@@ -5,6 +5,7 @@ from mizlab_tools.calculate_weights import calc_weights
 from Bio import SeqIO, SeqRecord
 import json
 from collections import Counter
+from tqdm import tqdm
 
 from typing import Dict, Iterable
 from glob import glob
@@ -28,10 +29,13 @@ def filter_usegbk(gbkfiles: Iterable[str],
             else:
                 del information[record.name]
 
+    invalids = {"null", "nan", None}
     n_classes = Counter([v["class"] for v in informations.values()])
     for record in candidates:
-        if n_classes[information[record.name][focus_rank]] >= 5:
-            yield record
+        if (n_classes[information[record.name][focus_rank]] >= 5
+                and information[record.name][focus_rank] not in invalids):
+            # yield record
+            yield record, information[record.name][focus_rank]
 
 
 if __name__ == "__main__":
@@ -44,10 +48,11 @@ if __name__ == "__main__":
     # project_dir = Path(__file__).parents[2]
     # print(project_dir)
 
-    with open(str(Path(args.config))) as f:
+    with Path(args.config).open() as f:
         config = yaml.safe_load(f)
 
-    df = pd.read_table(args.taxon, index_col=0)
+    df = pd.read_table(args.taxon, index_col=0).dropna(
+        subset=[config["focus_rank"]], how="any")
     # n_classes = Counter(taxon.values())
     informations = {}
     for row in df.itertuples():
@@ -58,18 +63,29 @@ if __name__ == "__main__":
     del df  # this DataFrame is big object
 
     # gen weights
-    use_records = tuple(filter_usegbk(
-        args.gbkfiles, config["focus_rank"], informations))
+    # use_records = tuple(filter_usegbk(
+    #     args.gbkfiles, config["focus_rank"], informations))
+    use_records = []
+    acc2class = {}
+    for record, class_name in filter_usegbk(args.gbkfiles,
+                                            config["focus_rank"],
+                                            informations):
+        use_records.append(record)
+        acc2class[record.name] = class_name
+
+    with (Path(config["data_dst"]) / "json" / "acc2class.json").open("w") as f:
+        json.dump(acc2class, f)
+
     weights = calc_weights(use_records, "ATGC")
-    with open(str(Path(config["data_dst"]) / "json" / "weights.json"), "w") as f:
+    with (Path(config["data_dst"]) / "json" / "weights.json").open("w") as f:
         json.dump(weights, f)
 
     # gen coordinates
 
     data_dst = Path(config["data_dst"]) / "coordinates"
     data_dst.mkdir(parents=True, exist_ok=True)
-    for record in use_records:
+    for record in tqdm(use_records):
         coord = calc_coord(record, mapping=config["mapping"], weight=weights)
         acc = record.name
-        with open(str(data_dst / f"{acc}.json"), "w") as f:
+        with (data_dst / f"{acc}.json").open("w") as f:
             json.dump(coord, f)
