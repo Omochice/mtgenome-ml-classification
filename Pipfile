@@ -12,11 +12,16 @@ pyyaml = "*"
 matplotlib = "*"
 tensorflow = "*"
 numpy = "*"
+scikit-learn = "*"
+seaborn = "*"
+japanize-matplotlib = "*"
+pydot = "*"
 
 [dev-packages]
 yapf = "*"
 flake8 = "*"
 isort = "*"
+mypy = "*"
 
 [requires]
 python_version = "3.8"
