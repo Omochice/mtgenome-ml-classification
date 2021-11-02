@@ -1,12 +1,13 @@
-import matplotlib.pyplot as plt
 import argparse
-from tqdm import tqdm
 import json
-import yaml
-from typing import Iterable, Union, Tuple
 from pathlib import Path
+from typing import Iterable, Tuple, Union
+
 import matplotlib
+import matplotlib.pyplot as plt
+import yaml
 from matplotlib.collections import LineCollection
+from tqdm import tqdm
 
 matplotlib.use("Agg")
 
