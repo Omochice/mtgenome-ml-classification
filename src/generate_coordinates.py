@@ -12,11 +12,19 @@ from mizlab_tools.calculate_weights import calc_weights
 from tqdm import tqdm
 
 
+def center_of_gravity(coordinates: Iterable[float]) -> float:
+    """Calculate gravity point
+
+    Args:
+        coordinates (Iterable[float]): coordinates
+
+    Returns:
+        float:
+    """
+    tupled = tuple(coordinates)
+    return sum(tupled) / len(tupled)
 
 
-def filter_usegbk(gbkfiles: Iterable[str],
-                  focus_rank: str,
-                  information: Dict) -> Iterator[SeqRecord.SeqRecord]:
 def filter_usegbk(
     gbkfiles: Iterable[str], focus_rank: str, information: Dict
 ) -> Iterator[SeqRecord.SeqRecord]:
