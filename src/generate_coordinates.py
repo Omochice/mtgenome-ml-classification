@@ -1,30 +1,46 @@
-import yaml
 import argparse
-from mizlab_tools.calculate_coordinates import calc_coord
-from mizlab_tools.calculate_weights import calc_weights
-from Bio import SeqIO, SeqRecord
 import json
 from collections import Counter
+from pathlib import Path
+from typing import Dict, Iterable, Iterator
+
+import pandas as pd
+import yaml
+from Bio import SeqIO, SeqRecord
+from mizlab_tools.calculate_coordinates import calc_coord
+from mizlab_tools.calculate_weights import calc_weights
 from tqdm import tqdm
 
-from typing import Dict, Iterable
-from glob import glob
 
-from pathlib import Path
-import pandas as pd
-from typing import Iterable, List, Iterator
 
 
 def filter_usegbk(gbkfiles: Iterable[str],
                   focus_rank: str,
                   information: Dict) -> Iterator[SeqRecord.SeqRecord]:
+def filter_usegbk(
+    gbkfiles: Iterable[str], focus_rank: str, information: Dict
+) -> Iterator[SeqRecord.SeqRecord]:
+    """Filter invalid file from gbkfiles
+
+    Args:
+        gbkfiles (Iterable[str]): gbkfiles
+        focus_rank (str): Focused rank
+        information (Dict): Information of taxon
+
+    Returns:
+        Iterator[SeqRecord.SeqRecord]:
+    """
     # filter use gbk
     candidates = []
     for gbkfile in gbkfiles:
         for record in SeqIO.parse(gbkfile, "genbank"):
             info = informations[record.name]
-            if (info["is_complete"] and not info["is_mongrel"]
-                    and not info["is_shotgun"] and not info["is_chromosome"]):
+            if (
+                info["is_complete"]
+                and not info["is_mongrel"]
+                and not info["is_shotgun"]
+                and not info["is_chromosome"]
+            ):
                 candidates.append(record)
             else:
                 del information[record.name]
@@ -32,8 +48,10 @@ def filter_usegbk(gbkfiles: Iterable[str],
     invalids = {"null", "nan", None}
     n_classes = Counter([v["class"] for v in informations.values()])
     for record in candidates:
-        if (n_classes[information[record.name][focus_rank]] >= 5
-                and information[record.name][focus_rank] not in invalids):
+        if (
+            n_classes[information[record.name][focus_rank]] >= 5
+            and information[record.name][focus_rank] not in invalids
+        ):
             # yield record
             yield record, information[record.name][focus_rank]
 
@@ -52,7 +70,8 @@ if __name__ == "__main__":
         config = yaml.safe_load(f)
 
     df = pd.read_table(args.taxon, index_col=0).dropna(
-        subset=[config["focus_rank"]], how="any")
+        subset=[config["focus_rank"]], how="any"
+    )
     # n_classes = Counter(taxon.values())
     informations = {}
     for row in df.itertuples():
@@ -67,9 +86,9 @@ if __name__ == "__main__":
     #     args.gbkfiles, config["focus_rank"], informations))
     use_records = []
     acc2class = {}
-    for record, class_name in filter_usegbk(args.gbkfiles,
-                                            config["focus_rank"],
-                                            informations):
+    for record, class_name in filter_usegbk(
+        args.gbkfiles, config["focus_rank"], informations
+    ):
         use_records.append(record)
         acc2class[record.name] = class_name
 
