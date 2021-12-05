@@ -27,6 +27,20 @@ class Graph:
             ax.set_ylabel("Y")
             ax.set_zlabel("Z")
             ax.set_title(self.title)
+            # Set aspect 'equal'
+            xmid = (max(self.x_coordinates) + min(self.x_coordinates)) / 2
+            ymid = (max(self.y_coordinates) + min(self.y_coordinates)) / 2
+            zmid = (max(self.z_coordinates) + min(self.z_coordinates)) / 2
+            max_range = max(
+                [
+                    (max(self.x_coordinates) - min(self.x_coordinates)) / 2,
+                    (max(self.y_coordinates) - min(self.y_coordinates)) / 2,
+                    (max(self.z_coordinates) - min(self.z_coordinates)) / 2,
+                ]
+            )
+            ax.set_xlim(xmid - max_range, xmid + max_range)
+            ax.set_ylim(ymid - max_range, ymid + max_range)
+            ax.set_zlim(zmid - max_range, zmid + max_range)
             return fig
 
         def animate(i: int):
