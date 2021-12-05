@@ -191,76 +191,76 @@ def construct_model(
     return constructed
 
 
-def construct_parallel_model(
-    n_class: int, input_shape: Tuple[int, int, int]
-) -> tf.keras.Model:
-    """construct_model.
-
-    Args:
-        n_class (int): n_class
-        shape (Tuple[int, int]): shape
-
-    Returns:
-        tf.keras.Model:
-    """
-    shape = input_shape[:2]
-    input_x_y = Input(shape=(*shape, 1))
-    input_y_z = Input(shape=(*shape, 1))
-    input_z_x = Input(shape=(*shape, 1))
-
-    x_y = Conv2D(
-        filters=3,
-        kernel_size=3,
-        padding="same",
-        activation="relu",
-    )(input_x_y)
-    y_z = Conv2D(
-        filters=3,
-        kernel_size=3,
-        padding="same",
-        activation="relu",
-    )(input_y_z)
-    z_x = Conv2D(
-        filters=3,
-        kernel_size=3,
-        padding="same",
-        activation="relu",
-    )(input_z_x)
-    mobilenet_xy = MobileNetV2(
-        include_top=False,
-        input_shape=(*shape, 3),
-        weights="imagenet",
-        pooling="max",
-    )
-    mobilenet_xy._name = "mobilenetv2_xy_dim"
-    mobilenet_yz = MobileNetV2(
-        include_top=False,
-        input_shape=(*shape, 3),
-        weights="imagenet",
-        pooling="max",
-    )
-    mobilenet_yz._name = "mobilenetv2_yz_dim"
-    mobilenet_zx = MobileNetV2(
-        include_top=False,
-        input_shape=(*shape, 3),
-        weights="imagenet",
-        pooling="max",
-    )
-    mobilenet_zx._name = "mobilenetv2_zx_dim"
-    x_y = mobilenet_xy(x_y)
-    y_z = mobilenet_yz(y_z)
-    z_x = mobilenet_zx(z_x)
-    concate = Concatenate()([x_y, y_z, z_x])
-    model = Dense(512, activation="relu")(concate)
-    model = Dropout(0.3)(model)
-    model = Dense(512, activation="relu")(model)
-    model = Dropout(0.25)(model)
-    model = Dense(n_class, activation="softmax")(model)
-
-    return tf.keras.Model(
-        inputs=[input_x_y, input_y_z, input_z_x],
-        outputs=model,
-    )
+# def construct_parallel_model(
+#     n_class: int, input_shape: Tuple[int, int, int]
+# ) -> tf.keras.Model:
+#     """construct_model.
+# 
+#     Args:
+#         n_class (int): n_class
+#         shape (Tuple[int, int]): shape
+# 
+#     Returns:
+#         tf.keras.Model:
+#     """
+#     shape = input_shape[:2]
+#     input_x_y = Input(shape=(*shape, 1))
+#     input_y_z = Input(shape=(*shape, 1))
+#     input_z_x = Input(shape=(*shape, 1))
+# 
+#     x_y = Conv2D(
+#         filters=3,
+#         kernel_size=3,
+#         padding="same",
+#         activation="relu",
+#     )(input_x_y)
+#     y_z = Conv2D(
+#         filters=3,
+#         kernel_size=3,
+#         padding="same",
+#         activation="relu",
+#     )(input_y_z)
+#     z_x = Conv2D(
+#         filters=3,
+#         kernel_size=3,
+#         padding="same",
+#         activation="relu",
+#     )(input_z_x)
+#     mobilenet_xy = MobileNetV2(
+#         include_top=False,
+#         input_shape=(*shape, 3),
+#         weights="imagenet",
+#         pooling="max",
+#     )
+#     mobilenet_xy._name = "mobilenetv2_xy_dim"
+#     mobilenet_yz = MobileNetV2(
+#         include_top=False,
+#         input_shape=(*shape, 3),
+#         weights="imagenet",
+#         pooling="max",
+#     )
+#     mobilenet_yz._name = "mobilenetv2_yz_dim"
+#     mobilenet_zx = MobileNetV2(
+#         include_top=False,
+#         input_shape=(*shape, 3),
+#         weights="imagenet",
+#         pooling="max",
+#     )
+#     mobilenet_zx._name = "mobilenetv2_zx_dim"
+#     x_y = mobilenet_xy(x_y)
+#     y_z = mobilenet_yz(y_z)
+#     z_x = mobilenet_zx(z_x)
+#     concate = Concatenate()([x_y, y_z, z_x])
+#     model = Dense(512, activation="relu")(concate)
+#     model = Dropout(0.3)(model)
+#     model = Dense(512, activation="relu")(model)
+#     model = Dropout(0.25)(model)
+#     model = Dense(n_class, activation="softmax")(model)
+# 
+#     return tf.keras.Model(
+#         inputs=[input_x_y, input_y_z, input_z_x],
+#         outputs=model,
+#     )
 
 
 # m = construct_model(
