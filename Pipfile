@@ -25,3 +25,6 @@ mypy = "*"
 
 [requires]
 python_version = "3.8"
+
+[script]
+learning = "python src/ml/cnn_stack.py --config config.yml --acc2class data/json/acc2taxon.json"

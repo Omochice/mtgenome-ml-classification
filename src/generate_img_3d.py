@@ -9,6 +9,8 @@ import yaml
 from matplotlib.collections import LineCollection
 from tqdm import tqdm
 
+from generate_coordinates import center_of_gravity
+
 matplotlib.use("Agg")
 
 # dont format
@@ -44,6 +46,7 @@ def plot(
     figsize: Tuple[float, float],
     dpi: int,
     linewidth: float = 0.1,
+    gravity: bool = False,
 ) -> None:
     """plot tight graph.
 
@@ -54,6 +57,7 @@ def plot(
         save (bool): save figure
         dst (Path): destination if save figure
         linewidth (float): width of plotted line
+        gravity (bool): move gravity point to center of graph
     """
     tupled_x = tuple(x)
     tupled_y = tuple(y)
@@ -72,7 +76,25 @@ def plot(
         ax.add_collection(lc)
     else:
         ax.plot(tupled_x, tupled_y, color="Black", lw=linewidth)
-    format_graph_img(ax, min(tupled_x), max(tupled_x), min(tupled_y), max(tupled_y))
+
+    if gravity:
+        gravity_x, gravity_y = center_of_gravity(tupled_x), center_of_gravity(tupled_y)
+        xrange = max(max(tupled_x) - gravity_x, gravity_x - min(tupled_x))
+        yrange = max(max(tupled_y) - gravity_y, gravity_y - min(tupled_y))
+        (xmin, xmax, ymin, ymax) = (
+            gravity_x - xrange,
+            gravity_x + xrange,
+            gravity_y - yrange,
+            gravity_y + yrange,
+        )
+    else:
+        (xmin, xmax, ymin, ymax) = (
+            min(tupled_x),
+            max(tupled_x),
+            min(tupled_y),
+            min(tupled_y),
+        )
+    format_graph_img(ax, xmin, xmax, ymin, ymax)
     if save:
         plt.savefig(dst)
         plt.close()
@@ -81,13 +103,39 @@ def plot(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="generage images")
-    parser.add_argument("coordinates", nargs="+")
-    parser.add_argument("--config", "-c", help="the path to config.yml")
+    parser = argparse.ArgumentParser(
+        description="Generate images",
+    )
+    parser.add_argument(
+        "coordinates",
+        nargs="+",
+        help="Files of coordinates",
+    )
+    parser.add_argument(
+        "--config",
+        "-c",
+        required=True,
+        help="the path to config.yml",
+    )
     parser.add_argument(
         "--gradation",
         action="store_true",
         help="Make head of line light color, tail dark color",
+    )
+    parser.add_argument(
+        "--move_gravity",
+        action="store_true",
+        help="Match gravity point of line and center of graph",
+    )
+    parser.add_argument(
+        "--out",
+        "-o",
+        help="The path of directory for output img",
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_false",
+        help="Show progress bar",
     )
     args = parser.parse_args()
 
@@ -97,10 +145,13 @@ if __name__ == "__main__":
     pix_a_side = config["graph_pix"]
     dpi = 100
     figsize = (pix_a_side / dpi, pix_a_side / dpi)
-    graph_dst = Path(config["data_dst"]) / "img"
+    graph_dst = Path(args.out)
     graph_dst.mkdir(parents=True, exist_ok=True)
 
-    for coor_path in tqdm(map(lambda x: Path(x), args.coordinates)):
+    for coor_path in tqdm(
+        map(lambda x: Path(x), args.coordinates),
+        disable=args.verbose,
+    ):
         with coor_path.open() as f:
             coords = json.load(f)
         accession = coor_path.stem
@@ -117,4 +168,5 @@ if __name__ == "__main__":
                 dst=dst,
                 figsize=figsize,
                 dpi=dpi,
+                gravity=args.move_gravity,
             )

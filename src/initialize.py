@@ -1,5 +1,5 @@
-from pathlib import Path
 import argparse
+from pathlib import Path
 
 import yaml
 
@@ -10,9 +10,12 @@ def init_settig(path: Path) -> None:
         return
     project_dir = path.parent
     priority = [
-        "NCBI Taxonomy", "NCBI", "GBIF Backbone Taxonomy", "Catalogue of Life",
+        "NCBI Taxonomy",
+        "NCBI",
+        "GBIF Backbone Taxonomy",
+        "Catalogue of Life",
         "Open Tree of Life Reference Taxonomy",
-        "The Interim Register of Marine and Nonmarine Genera"
+        "The Interim Register of Marine and Nonmarine Genera",
     ]
     template = {
         "email": "<FILL IN>",
@@ -28,12 +31,12 @@ def init_settig(path: Path) -> None:
             "T": [-1, 1, -1],
             "G": [-1, -1, 1],
             "C": [1, -1, -1],
-        }
+        },
     }
     with path.open("w") as f:
         yaml.safe_dump(template, f)
     print(f"GENERATING SETTING FILE. -> {str(path)}")
-    print("generating is done. Please rewrite if you need.")
+    print("Generating is done. Please rewrite if you need.")
 
     (project_dir / "data").mkdir(parents=True, exist_ok=True)
 
@@ -41,10 +44,12 @@ def init_settig(path: Path) -> None:
 if __name__ == "__main__":
     default_dst = Path(__file__).resolve().parents[1] / "setting.yml"
     parser = argparse.ArgumentParser(description="Generate config.yml.")
-    parser.add_argument("--destination",
-                        "-d",
-                        type=str,
-                        help=f"If specify this, generate config to there. default={str(default_dst)}",)
+    parser.add_argument(
+        "--destination",
+        "-d",
+        type=str,
+        help=f"If specify this, generate config to there. default={str(default_dst)}",
+    )
     args = parser.parse_args()
 
     if args.destination:
