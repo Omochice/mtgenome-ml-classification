@@ -207,6 +207,8 @@ tags
 #
 
 # user settings
-
+config.yml
 data
 log
+images
+images_gravity
