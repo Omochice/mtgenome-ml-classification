@@ -90,6 +90,7 @@ def make_conparison(
     coordinates: List[Coordinate],
     is_3d: bool = False,
     title: str = None,
+    limits: dict = None,
 ) -> plt.figure:
     """Generate figure with some coordinates
 
@@ -123,11 +124,14 @@ def make_conparison(
     ax.set_xlabel("X-axis")
     ax.set_ylabel("Y-axis")
     # setting for each
-    if args.threeD:
+    if is_3d:
         # it looks difficult to set aspect equal in 3d figure
         ax.set_zlabel("Z-axis")
     else:
         ax.set_aspect("equal")
+
+    if limits is not None:
+        ax.set(xlim=limits["xlim"], ylim=limits["ylim"])
     return fig
 
 
