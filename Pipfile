@@ -26,5 +26,8 @@ mypy = "*"
 [requires]
 python_version = "3.8"
 
-[script]
+[scripts]
 learning = "python src/ml/cnn_stack.py --config config.yml --acc2class data/json/acc2taxon.json"
+learn_gravity = "python src/ml/cnn_stack.py --config config.yml --acc2class data/json/acc2taxon.json --img-dir data/img_gravity"
+learn_xy = "python src/ml/cnn_stack.py --config config.yml --acc2class data/json/acc2taxon.json --use-xy-only"
+learn_parallel = "python src/ml/cnn_stack.py --config config.yml --acc2class data/json/acc2taxon.json --parallel"
