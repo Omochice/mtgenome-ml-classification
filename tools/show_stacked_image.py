@@ -1,20 +1,44 @@
 import argparse
-import math
 
 import numpy as np
 from PIL import Image
 
 
 def mix_monochromes(R: np.array, G: np.array, B: np.array) -> Image:
+    """Generate color image from three monochrome images.
+
+    Args:
+        R (np.array): The image as R channel
+        G (np.array): The image as G channel
+        B (np.array): The image as B channel
+
+    Returns:
+        Image: Mixed color image
+    """
     stacked = np.stack((R, G, B), axis=2)
     return Image.fromarray(stacked)
 
 
 def load_as_monochrome(filepath: str) -> np.array:
+    """Load image as monochrome
+
+    Args:
+        filepath (str): The path to source image
+
+    Returns:
+        np.array: Loaded image as np.array
+    """
     return np.array(Image.open(filepath).convert("L"))
 
 
-if __name__ == "__main__":
+def parse_args() -> argparse.Namespace:
+    """parse_args
+
+    Args:
+
+    Returns:
+        argparse.Namespace:
+    """
     parser = argparse.ArgumentParser(
         description="Generate color image from 3 monochrome images."
     )
@@ -30,22 +54,20 @@ if __name__ == "__main__":
         action="store_true",
         help="Show mixed image.",
     )
+    parser.add_argument(
+        "--out",
+        "-o",
+        help="The path to outout",
+    )
+    return parser.parse_args()
 
-    args = parser.parse_args()
 
+if __name__ == "__main__":
+    args = parse_args()
     images = [load_as_monochrome(f) for f in args.images]
 
     image = mix_monochromes(*images)
-    # width, height = image.size
-    # center_w, center_h = map(lambda x: math.ceil(x // 2) - 1, (width, height))
-    # w_range = 2 - width % 2
-    # h_range = 2 - height % 2
-    # for dh in range(-1, h_range + 1):
-    #     for dw in range(-1, w_range + 1):
-    #         w = center_w + dw
-    #         h = center_h + dh
-    #         print(f"[{w}, {h}] => {image.getpixel((w, h))}")
     if args.show:
         image.show()
     else:
-        image.save("./output.pnm")
+        image.save(args.out)
