@@ -1,13 +1,17 @@
 import argparse
-from tqdm import tqdm
+import itertools
 import json
 from collections import Counter
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 import yaml
 from Bio import SeqIO
 from mizlab_tools import gbk_utils
+from tqdm import tqdm
+
+flatten = itertools.chain.from_iterable
 
 
 def get_priority(taxon: dict, priority: List[str], rank: str) -> Optional[str]:
@@ -16,6 +20,13 @@ def get_priority(taxon: dict, priority: List[str], rank: str) -> Optional[str]:
         if taxon_name is not None:
             return taxon_name
     return None
+
+
+@dataclass
+class Invalid:
+    expr: Callable
+    description: str
+    accessions: List[str] = field(default_factory=list)
 
 
 if __name__ == "__main__":
@@ -30,7 +41,7 @@ if __name__ == "__main__":
         help="config.yml that has `priority`",
     )
     parser.add_argument(
-        "--show_filtered",
+        "--verbose",
         action="store_true",
         help="show number of species that is filterd",
     )
@@ -57,43 +68,67 @@ if __name__ == "__main__":
     with open(args.taxon) as f:
         taxon = json.load(f)
 
-    selected = {}
-    n_mongrel = 0
-    accs_has_contig = []
-    accs_has_shotgun = []
-    accs_has_chromosome = []
+    # NOTE: expr that definition on here expect to be gave argument SeqIO.SeqRecord.
+    invalids: List[Invalid] = [
+        Invalid(
+            lambda x: "shotgun" in gbk_utils.get_definition(x), "It is shotgun sequence"
+        ),
+        Invalid(
+            lambda x: "complete" not in gbk_utils.get_definition(x),
+            "It is not complete sequence",
+        ),
+        Invalid(
+            lambda x: "chromosome" in gbk_utils.get_definition(x),
+            "It is chromosome sequence",
+        ),
+        Invalid(
+            lambda x: "assembly" in gbk_utils.get_definition(x),
+            "It is assembly sequence",
+        ),
+        Invalid(
+            lambda x: "partial" in gbk_utils.get_definition(x), "It is partial sequence"
+        ),
+        Invalid(lambda x: gbk_utils.has_contig(x), "It has contig"),
+        Invalid(lambda x: " x " in gbk_utils.get_creature_name(x), "It is mongrel"),
+    ]
+
+    acc2taxon = {}
     for accession, values in tqdm(taxon.items()):
-        if " x " in values["binomial_name"]:
-            n_mongrel += 1
-        taxon_name = get_priority(values["taxon"], priority, focus_rank)
-        if taxon_name is not None:
-            selected[accession] = taxon_name
+        # NOTE: None is invalid taxon name.
+        acc2taxon[accession] = get_priority(values["taxon"], priority, focus_rank)
+
         with (gbk_root / f"{accession}.gbk").open() as f:
             for record in SeqIO.parse(f, "genbank"):
-                definition = gbk_utils.get_definition(record)
-                if gbk_utils.has_contig(record):
-                    accs_has_contig.append(accession)
-                if "shotgun" in definition:
-                    accs_has_shotgun.append(accession)
-                if "chromosome" in definition:
-                    accs_has_chromosome.append(accession)
-
-    c = Counter(selected.values())
-    n_five = [k for k, v in selected.items() if c[v] < 5]
+                for inv in invalids:
+                    if inv.expr(record):
+                        inv.accessions.append(accession)
 
     if args.filter:
-        for k in set(
-            n_five + accs_has_contig + accs_has_shotgun + accs_has_chromosome
-        ):
-            del selected[k]
+        invalids.append(
+            Invalid(
+                lambda: None,
+                description="It have no class",
+                accessions=[acc for acc, cl in acc2taxon.items() if cl is None],
+            )
+        )
+        for k in set(flatten([inv.accessions for inv in invalids])):
+            del acc2taxon[k]
+        # n < 5 must do on hook_after
+        n_class = Counter(acc2taxon.values())
+        n_five = [acc for acc, cl in acc2taxon.items() if n_class[cl] < 5]
+        for k in n_five:
+            del acc2taxon[k]
+        invalids.append(
+            Invalid(
+                lambda: None,
+                description="Number of its class is < 5",
+                accessions=n_five,
+            )
+        )
 
-    if args.show_filterd:
-        print(f"mongrel: {n_mongrel}")
-        print(f"No class: {len(n_five)}")
-        print(f"n<5: {len([None for v in c.values() if v < 5])}")
-        print(f"contig: {len(accs_has_contig)}")
-        print(f"shotgun: {len(accs_has_shotgun)}")
-        print(f"chromosome: {len(accs_has_chromosome)}")
+        if args.verbose:
+            for inv in invalids:
+                print(f"{inv.description}: {len(inv.accessions)}")
 
     with open(args.out, "w") as f:
-        json.dump(selected, f)
+        json.dump(acc2taxon, f)
