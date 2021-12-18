@@ -177,17 +177,17 @@ if __name__ == "__main__":
         required=True,
     )
     parser.add_argument(
-        "--use_model_name",
+        "--use-model-name",
         help="use model name",
         default="mobilenetV2",
     )
     parser.add_argument(
-        "--use_xy_only",
+        "--use-xy-only",
         help="use only xy dim images",
         action="store_true",
     )
     parser.add_argument(
-        "--as_color",
+        "--as-color",
         help="When use_xy_only is True, load image as color one",
         action="store_true",
     )
@@ -203,6 +203,15 @@ if __name__ == "__main__":
         type=str,
         default="",
     )
+    parser.add_argument(
+        "--img-dir",
+        help="Change path to directory that has source images",
+    )
+    parser.add_argument(
+        "--disable-earlystopping",
+        action="store_true",
+        help="Disable EarlyStopping",
+    )
     args = parser.parse_args()
 
     with open(args.config) as f:
@@ -213,7 +222,12 @@ if __name__ == "__main__":
     with open(args.acc2class) as f:
         acc2class = json.load(f)
 
-    img_dst = data_dst / "img"
+    if args.img_dir:
+        img_dst = Path(args.img_dir)
+    else:
+        img_dst = data_dst / "img"
+        args.img_dir = str(img_dst)
+
     raw_labels = []
     tmp_paths = []
     for acc, cl in acc2class.items():
@@ -312,6 +326,10 @@ if __name__ == "__main__":
                 # save_best_only=True,
                 save_weights_only=True,
             )
+            if args.disable_earlystopping:
+                callbacks = [csv_logger, checkpoint, f1cb]
+            else:
+                callbacks = [csv_logger, checkpoint, early_stopping, f1cb]
 
             # compile model
             model.compile(
@@ -337,7 +355,7 @@ if __name__ == "__main__":
                 validation_data=(image_test, label_test),
                 epochs=1000,
                 batch_size=16,
-                callbacks=[csv_logger, checkpoint, early_stopping, f1cb],
+                callbacks=callbacks,
                 class_weight=weights,
             )
 
@@ -382,7 +400,7 @@ if __name__ == "__main__":
         # study_log["macrof1"].append(macrof1)
 
         # visualizing
-        visualize.visualize_history(history.history, "study_log", trial_dst)
+        visualize.visualize_history(history.history, "", trial_dst)
         visualize.plot_cmx(
             np.argmax(label_test, axis=1),
             pred_labels,

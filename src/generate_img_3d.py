@@ -9,8 +9,6 @@ import yaml
 from matplotlib.collections import LineCollection
 from tqdm import tqdm
 
-from generate_coordinates import center_of_gravity
-
 matplotlib.use("Agg")
 
 # dont format
@@ -18,6 +16,19 @@ matplotlib.use("Agg")
 Coordinate = Union[int, float]
 gradations = [str(i * (1 / 256)) for i in range(0, 256)]
 gradations.reverse()
+
+
+def center_of_gravity(coordinates: Iterable[float]) -> float:
+    """Calculate gravity point
+
+    Args:
+        coordinates (Iterable[float]): coordinates
+
+    Returns:
+        float:
+    """
+    tupled = tuple(coordinates)
+    return sum(tupled) / len(tupled)
 
 
 def format_graph_img(
@@ -67,7 +78,7 @@ def plot(
     if gradation:
         n_coords = len(tupled_x)
         n = n_coords / 256
-        colors = [gradations[int(i // n)] for i in range(n_coords)]
+        colors = [gradations[i // n] for i in range(n_coords)]
         lines = [
             [(x1, y1), (x2, y2)]
             for x1, y1, x2, y2 in zip(tupled_x, tupled_y, tupled_x[1:], tupled_y[1:])
@@ -92,7 +103,7 @@ def plot(
             min(tupled_x),
             max(tupled_x),
             min(tupled_y),
-            min(tupled_y),
+            max(tupled_y),
         )
     format_graph_img(ax, xmin, xmax, ymin, ymax)
     if save:
@@ -123,7 +134,7 @@ if __name__ == "__main__":
         help="Make head of line light color, tail dark color",
     )
     parser.add_argument(
-        "--move_gravity",
+        "--move-gravity",
         action="store_true",
         help="Match gravity point of line and center of graph",
     )

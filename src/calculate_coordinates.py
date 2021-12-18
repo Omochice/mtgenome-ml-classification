@@ -28,12 +28,12 @@ if __name__ == "__main__":
         help="The path of weights.json(Optional)",
     )
     parser.add_argument(
-        "--use_weights_match_taxon",
+        "--use-weights-match-taxon",
         action="store_true",
         help="Use weights that match taxon",
     )
     parser.add_argument(
-        "--gbk_root",
+        "--gbk-root",
         required=True,
         help="The path of directory that has genbank files",
     )

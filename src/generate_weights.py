@@ -47,7 +47,7 @@ if __name__ == "__main__":
         help="Genbank files that count frquencies. It use json, this will none",
     )
     parser.add_argument(
-        "--n_split",
+        "--n-split",
         default=3,
         type=int,
         help="How many characters to split each sequence",
@@ -58,11 +58,11 @@ if __name__ == "__main__":
         help="Use json that written information",
     )
     parser.add_argument(
-        "--gbk_root",
+        "--gbk-root",
         help="If use json, must be specify this",
     )
     parser.add_argument(
-        "--split_taxon",
+        "--split-taxon",
         action="store_true",
         help="Count based on taxon",
     )
@@ -122,5 +122,5 @@ if __name__ == "__main__":
                     )
             rst = convert_freq_to_self_information(counter)
 
-    with open(args.output, "w") as f:
+    with open(args.out, "w") as f:
         json.dump(rst, f)
