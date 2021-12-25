@@ -3,12 +3,11 @@ import itertools
 import os
 from os import PathLike
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Union
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import seaborn as sns
 from PIL import Image
 from sklearn.metrics import confusion_matrix
@@ -29,7 +28,11 @@ def __load_japanize_matplotlib() -> None:
 __load_japanize_matplotlib()
 
 
-def visualize_history(history: dict, title: str = "", dst: PathLike = "") -> None:
+def visualize_history(
+    history: dict,
+    title: str = "",
+    dst: PathLike = "",
+) -> None:
     """Visialize training history into image.
 
     Args:
@@ -43,10 +46,12 @@ def visualize_history(history: dict, title: str = "", dst: PathLike = "") -> Non
     fig, (axL, axR) = plt.subplots(ncols=2, figsize=(10, 4))
 
     axL.plot(
-        history.get("acc", history.get("accuracy", None)), "o-", label="Train accuracy"
+        history.get("acc", history.get("accuracy", None)),
+        "o-",
+        label="Train accuracy",
     )
     axL.plot(
-        history.get("val_acc", history.get("val_accuracy")),
+        history.get("val_acc", history.get("val_accuracy", None)),
         "o-",
         label="Validation accuracy",
     )
@@ -87,55 +92,65 @@ def visualize_history(history: dict, title: str = "", dst: PathLike = "") -> Non
     fig.clf()
 
 
-def plot_cmx(y_true: list, y_pred: list, labels: List[str], title: str, dst: PathLike):
-    """Generate confusion matrics image of results of machine learning with unbalanced training data.
+def plot_cmx(
+    y_true: Union[np.ndarray, List[Union[int, float]]],
+    y_pred: Union[np.ndarray, List[Union[int, float]]],
+    labels: List[str],
+    title: str,
+    dst: Union[str, Path],
+    emphasize_diagonal_elements: bool = False,
+):
+    """Generate figure that shows confusion-matrics of machine learning result
 
     Args:
-        y_true (list): y_true
-        y_pred (list): y_pred
-        labels (List[str]): labels
-        title (str): title string
-        dst (PathLike): The path to save figure
+        y_true (Union[np.ndarray, List[Union[int, float]]]): List of true labels(not one-hoted)
+        y_pred (Union[np.ndarray, List[Union[int, float]]]): List of predicted labels(not one-hoted)
+        labels (List[str]): Label names. this is used as tick labels
+        title (str): Title string for figure
+        dst (Union[str, Path]): destination path for save figure
+        emphasize_diagonal_elements (bool): Whether emphasize diagonal elements
     """
+    fig, ax = plt.subplots(figsize=(15, 13))
     cmx = confusion_matrix(y_true, y_pred)
     normalized_cmx = [row / np.sum(row) for row in cmx]
 
-    df_cmx = pd.DataFrame(cmx, index=labels, columns=labels)
-
-    plt.figure(figsize=(15, 13))
-    sns.heatmap(
-        normalized_cmx,
-        xticklabels=labels,
-        yticklabels=labels,
-        annot=False,
-        square=True,
-        cmap="Blues",
-        vmin=0,
-        vmax=1.0,
-    )
-    plt.title("正解の綱と予測した綱の対応")
-    plt.xlabel("予測した綱")
-    plt.ylabel("正解の綱")
-
-    # write value in cells
-    data = df_cmx.values
-    for y, x in itertools.product(range(data.shape[0]), range(data.shape[1])):
-        if x == y:
-            color = "red"
-        elif normalized_cmx[y][x] > 0.5:
-            color = "white"
-        else:
-            color = "black"
-        plt.text(
-            x + 0.5,
-            y + 0.5,
-            data[y, x],
-            horizontalalignment="center",
-            verticalalignment="center",
-            color=color,
+    if emphasize_diagonal_elements:
+        # write value in cells
+        # annot can not specify diagonal elements
+        for y, x in itertools.product(range(len(cmx)), range(len(cmx))):
+            if x == y:
+                color = "red"  # it is diagonal elements
+            elif normalized_cmx[y][x] > 0.5:
+                color = "white"  # cell background is like black
+            else:
+                color = "black"  # cell background is like white
+            ax.text(
+                x + 0.5,
+                y + 0.5,
+                cmx[y][x],
+                horizontalalignment="center",
+                verticalalignment="center",
+                color=color,
+            )
+    else:
+        sns.heatmap(
+            normalized_cmx,
+            xticklabels=labels,
+            yticklabels=labels,
+            annot=cmx,
+            square=True,
+            cmap="Blues",
+            vmin=0,
+            vmax=1.0,
+            ax=ax,
+            fmt="d",
         )
-    plt.savefig(Path(dst) / (title + ".png"), bbox_inches="tight", pad_inches=0.05)
-    plt.clf()
+
+    ax.set_title("正解の綱と予測した綱の対応")
+    ax.set_xlabel("予測した綱")
+    ax.set_ylabel("正解の綱")
+    fig.savefig(dst, bbox_inches="tight", pad_inches=0.05)
+    fig.clf()
 
 
 def show_cmx_gif(
@@ -228,14 +243,14 @@ def show_cmx_gif(
 #     show_execlude_outlier: bool = False,
 # ) -> None:
 #     """visualize_all_cmxs.
-# 
+#
 #     Args:
 #         rst (list): rst
 #         cmx_pathes (Iterable[PathLike]): cmx_pathes
 #         ave (dict): ave
 #         dst (PathLike): dst
 #         show_execlude_outlier (bool): show_execlude_outlier
-# 
+#
 #     Returns:
 #         None:
 #     """
@@ -247,9 +262,9 @@ def show_cmx_gif(
 #     for row in rst:
 #         for k, v in row.items():
 #             d[k] = {kk: f"{vv:.3f}" for kk, vv in v.items()}
-# 
+#
 #     d["Average"] = {k: f"{v:.3f}" for k, v in ave.items()}
-# 
+#
 #     if show_execlude_outlier:
 #         for k in average_widthout_outlier.keys():
 #             average_widthout_outlier[k] = sum(average_widthout_outlier[k]) / len(
@@ -257,7 +272,7 @@ def show_cmx_gif(
 #             )
 #         d["外れ値を除く"] = {k: f"{v:.3f}" for k, v in average_widthout_outlier.items()}
 #     df = pd.DataFrame.from_dict(d, orient="index")
-# 
+#
 #     # concate table and cmxs
 #     for i, img_path in enumerate(cmx_pathes, 1):
 #         fig, (ax1, ax2) = plt.subplots(ncols=2, figsize=(10, 4))
@@ -273,7 +288,7 @@ def show_cmx_gif(
 #             tb[0, j].set_facecolor("#363636")
 #             tb[0, j].set_text_props(color="w")
 #             tb[i, j].set_facecolor("tomato")
-# 
+#
 #         ax2.axis("off")
 #         img = plt.imread(img_path)
 #         ax2.imshow(img)
@@ -281,7 +296,7 @@ def show_cmx_gif(
 #         fig.savefig(filedst, bbox_inches="tight", pad_inches=0.05)
 #         images.append(Image.open(filedst))
 #         os.remove(filedst)
-# 
+#
 #     # make gif animation
 #     images[0].save(
 #         dst / "log.gif",
