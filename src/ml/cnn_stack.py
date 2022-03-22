@@ -9,7 +9,6 @@ from typing import Any, Dict, Iterable, Tuple, Union
 
 import models
 import numpy as np
-import pandas as pd
 import tensorflow as tf
 import tensorflow.keras.backend as K
 import visualize
@@ -406,7 +405,7 @@ if __name__ == "__main__":
             pred_labels,
             sorted_unique_label,
             title="cmx",
-            dst=trial_dst,
+            dst=trial_dst / "cmx.png",
         )
         with (trial_dst / "trainlog.json").open("w") as f:
             json.dump(history.history, f, indent=2)
